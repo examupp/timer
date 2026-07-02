@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Pemasa Peperiksaan</title>
+<style>
+  :root{
+    --navy-deep:#050A1E;
+    --navy-mid:#0E1738;
+    --navy-card:#16214A;
+    --yellow:#FFCC4D;
+    --white:#FAFBFF;
+    --muted:#8994BF;
+    --green:#3EE08C;
+    --amber:#FFB020;
+    --red:#FF5266;
+    --border:rgba(255,255,255,0.10);
+  }
+  html,body{height:100%; height:100dvh;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    height:100vh;
+    height:100dvh;
+    width:100vw;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 20% -10%, rgba(255,201,52,0.08), transparent 40%),
+      radial-gradient(circle at 90% 110%, rgba(62,213,152,0.06), transparent 45%),
+      linear-gradient(180deg, var(--navy-deep) 0%, var(--navy-mid) 100%);
+    color:var(--white);
+    font-family:'Segoe UI', Roboto, -apple-system, Arial, sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:calc(20px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+    box-sizing:border-box;
+  }
+
+  /* Top clock ribbon */
+  .clock-ribbon{
+    width:100%;
+    max-width:none;
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
+    padding:16px 22px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    margin-bottom:18px;
+    gap:14px;
+    flex-shrink:0;
+  }
+  .clock-ribbon .clock-center{
+    text-align:center;
+  }
+  .clock-ribbon .ribbon-spacer{
+    min-width:1px;
+  }
+  @media (max-width:700px){
+    .clock-ribbon{grid-template-columns:1fr; text-align:center;}
+    .clock-ribbon .ribbon-spacer{display:none;}
+    .clock-ribbon .top-actions{justify-self:center;}
+  }
+  .clock-ribbon .date{
+    font-size:clamp(15px,1.6vw,20px);
+    color:var(--muted);
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .clock-ribbon .time{
+    font-size:clamp(48px,7vw,88px);
+    font-weight:900;
+    letter-spacing:3px;
+    font-variant-numeric: tabular-nums;
+    line-height:1;
+    transition:font-size .5s ease;
+  }
+  .clock-ribbon .date{
+    transition:font-size .5s ease;
+  }
+
+  /* Idle mode — bila tiada sebarang paper aktif ditunjukkan (belum ada
+     paper ditetapkan, ATAU semua paper dah tamat & kad dah hilang dari
+     skrin), skrin "reset" macam awal: jam jadi focal point, auto center
+     & auto scale besar (terhad ikut lebar & tinggi skrin supaya tak
+     overflow / terlalu besar). */
+  body.idle-mode .clock-ribbon{
+    grid-template-columns:1fr;
+    text-align:center;
+  }
+  body.idle-mode .clock-ribbon .ribbon-spacer{display:none;}
+  body.idle-mode .clock-ribbon .top-actions{justify-self:center; margin-top:14px;}
+  body.idle-mode .clock-ribbon .date{
+    font-size:clamp(18px, 2.4vw, 30px);
+  }
+  body.idle-mode .clock-ribbon .time{
+    font-size:clamp(64px, min(17vw, 24vh), 260px);
+  }
+  .clock-ribbon .time .period{
+    font-size:0.35em;
+    font-weight:700;
+    letter-spacing:2px;
+    margin-left:8px;
+    vertical-align:middle;
+    opacity:0.85;
+  }
+  .top-actions{
+    display:flex;
+    gap:10px;
+    justify-self:end;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s;
+  }
+  .clock-ribbon:hover .top-actions,
+  .clock-ribbon:focus-within .top-actions,
+  .clock-ribbon.actions-visible .top-actions{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .icon-btn{
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--border);
+    color:var(--white);
+    padding:9px 14px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    transition:.15s;
+  }
+  .icon-btn:hover{background:rgba(255,255,255,0.12);}
+  .icon-btn.icon-only{
+    padding:9px;
+    width:38px;
+    height:38px;
+    justify-content:center;
+  }
+  .icon-btn.icon-only svg{display:block;}
+
+  /* Session grid */
+  .grid{
+    width:100%;
+    max-width:none;
+    flex:1 1 auto;
+    min-height:0;
+    display:grid;
+    grid-auto-rows:1fr;
+    gap:20px;
+  }
+
+  .card{
+    position:relative;
+    background:linear-gradient(180deg, var(--navy-card), rgba(20,31,71,0.5));
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:1vh 2.5%;
+    text-align:center;
+    overflow:hidden;
+    transition:box-shadow .3s, border-color .3s, filter 1s linear, opacity 1s linear;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:0.8vh;
+    container-type:size;
+    container-name:examcard;
+    box-sizing:border-box;
+  }
+  .card::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:4px;
+    background:var(--green);
+    transition:background .3s;
+  }
+  .card.state-amber::before{background:var(--amber);}
+  .card.state-red::before{background:var(--red);}
+  .card.state-done::before{background:var(--muted);}
+
+  .card .code{
+    position:relative;
+    font-size:20px; /* set dynamically by JS (fitCard) to guarantee no overflow */
+    font-weight:900;
+    color:var(--yellow);
+    letter-spacing:1px;
+    margin:0;
+    line-height:1.1;
+    max-width:100%;
+    transition:color .6s ease .5s;
+  }
+  .card .session{
+    position:relative;
+    font-size:11px;
+    font-weight:700;
+    color:var(--yellow);
+    opacity:.85;
+    text-transform:uppercase;
+    letter-spacing:2px;
+    margin:0;
+    line-height:1.2;
+    max-width:100%;
+    transition:color .6s ease .5s;
+  }
+  .card .range{
+    position:relative;
+    font-size:13px;
+    color:var(--white);
+    font-weight:600;
+    margin:0;
+    line-height:1.2;
+    max-width:100%;
+    transition:color .6s ease .5s;
+  }
+
+  /* Coretan pen merah bila paper MASA TAMAT — garis "ditulis" dari kiri ke
+     kanan atas kod, nama subjek & masa, satu demi satu (kod dulu, lepas tu
+     nama, lepas tu masa), macam dicoret guna pen. Guna transform:scaleX
+     supaya nampak macam pen bergerak melukis garis. Dipasang sekali je bila
+     class .state-done ditambah (JS kekalkan class ni, tak buang-tambah tiap
+     saat), jadi animation-fill-mode:forwards tak replay berulang. */
+  .card.state-done .code::after,
+  .card.state-done .session::after,
+  .card.state-done .range::after{
+    content:'';
+    position:absolute;
+    left:-2%; right:-2%;
+    top:50%;
+    height:6px;
+    border-radius:3px;
+    background:linear-gradient(90deg, rgba(255,82,102,0), var(--red) 8%, var(--red) 92%, rgba(255,82,102,0));
+    box-shadow:0 0 12px rgba(255,82,102,0.75), 0 0 4px rgba(255,82,102,0.95);
+    transform:translateY(-50%) scaleX(0);
+    transform-origin:left center;
+    animation:penStrike .45s cubic-bezier(.65,0,.35,1) forwards;
+  }
+  .card.state-done .code::after{ animation-delay:0s; }
+  .card.state-done .session::after{ animation-delay:.35s; }
+  .card.state-done .range::after{ animation-delay:.7s; }
+  .card.state-done .code,
+  .card.state-done .session,
+  .card.state-done .range{
+    color:var(--muted) !important;
+  }
+  @keyframes penStrike{
+    0%{ transform:translateY(-50%) scaleX(0); opacity:.4; }
+    60%{ opacity:1; }
+    100%{ transform:translateY(-50%) scaleX(1); opacity:1; }
+  }
+  .card .status-label{
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0;
+    line-height:1.2;
+  }
+  .card .countdown{
+    font-size:24px;
+    font-weight:900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing:1px;
+    color:var(--green);
+    transition:color .3s;
+    line-height:1.1;
+    max-width:100%;
+  }
+  .card.state-amber .countdown{color:var(--amber);}
+  .card.state-red .countdown{
+    color:var(--red);
+    animation:pulseRed 1s infinite;
+  }
+  .card.state-red{
+    animation:glowRed 1s infinite;
+  }
+  .card.state-done .countdown{color:var(--muted);}
+  .card .done-note{
+    position:relative;
+    font-size:clamp(13px, 3cqw, 24px);
+    line-height:1.4;
+    color:var(--yellow);
+    font-weight:700;
+    letter-spacing:0.3px;
+    white-space:normal;
+    max-width:92%;
+    margin:0.6vh auto 0;
+    opacity:0;
+    transition:opacity .5s ease;
+  }
+  .card .done-note.visible{opacity:1;}
+  .card .done-note:empty{display:none;}
+  .card .done-note.typing::after{
+    content:'▏';
+    margin-left:1px;
+    animation:caretBlink .9s steps(1) infinite;
+  }
+  @keyframes caretBlink{
+    0%,49%{opacity:1;}
+    50%,100%{opacity:0;}
+  }
+  .card .countdown.running-text{
+    color:var(--green);
+    font-weight:800;
+    letter-spacing:2px;
+    opacity:.85;
+  }
+  .card .code,
+  .card .session,
+  .card .range,
+  .card .status-label,
+  .card .countdown{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:clip;
+  }
+  .card .status-label:empty,
+  .card .countdown:empty{
+    display:none;
+  }
+
+  @keyframes pulseRed{
+    0%,100%{opacity:1; transform:scale(1);}
+    50%{opacity:.75; transform:scale(1.04);}
+  }
+  @keyframes glowRed{
+    0%,100%{box-shadow:0 0 0px rgba(255,71,87,0);}
+    50%{box-shadow:0 0 40px rgba(255,71,87,0.35);}
+  }
+
+  .card .card-actions{
+    position:absolute;
+    top:12px; right:12px;
+    display:flex;
+    gap:8px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .15s;
+  }
+  .card:hover .card-actions,
+  .card.actions-visible .card-actions{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .card .card-actions button{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:16px;
+    cursor:pointer;
+  }
+  .card .card-actions .edit-btn:hover{color:var(--yellow);}
+  .card .card-actions .remove-btn:hover{color:var(--red);}
+
+  .empty-state{
+    text-align:center;
+    color:var(--muted);
+    padding:20px;
+    font-size:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    grid-column:1/-1;
+    grid-row:1/-1;
+  }
+
+  /* Edit panel — fixed overlay so it never disturbs the full-screen auto-fit layout */
+  .edit-panel{
+    position:fixed;
+    left:50%;
+    bottom:20px;
+    transform:translateX(-50%);
+    width:calc(100% - 48px);
+    max-width:1200px;
+    max-height:calc(100vh - 40px);
+    overflow-y:auto;
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:22px;
+    background:rgba(10,14,34,0.97);
+    backdrop-filter:blur(8px);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    z-index:100;
+  }
+  .edit-panel h3{
+    margin:0 0 16px;
+    font-size:16px;
+    color:var(--yellow);
+    letter-spacing:1px;
+    text-transform:uppercase;
+  }
+  .form-row{
+    display:grid;
+    grid-template-columns:1.2fr 1.3fr 1fr 1fr 1fr auto;
+    gap:12px;
+    margin-bottom:12px;
+    align-items:end;
+  }
+  @media (max-width:900px){
+    .form-row{grid-template-columns:1fr 1fr;}
+  }
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
+  .field input[type="text"]{
+    text-transform:uppercase;
+  }
+  .field input, .field select{
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    color:var(--white);
+    font-size:14px;
+    outline:none;
+  }
+  .field input:focus, .field select:focus{border-color:var(--yellow);}
+  .field select{
+    cursor:pointer;
+  }
+  .field select option{
+    background:var(--navy-card);
+    color:var(--white);
+  }
+  .add-btn{
+    background:var(--yellow);
+    color:#1a1400;
+    border:none;
+    border-radius:10px;
+    padding:11px 20px;
+    font-weight:800;
+    cursor:pointer;
+    font-size:14px;
+    white-space:nowrap;
+  }
+  .add-btn:hover{filter:brightness(1.08);}
+
+  .threshold-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:14px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .threshold-row input{
+    width:70px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:7px 10px;
+    color:var(--white);
+    font-size:14px;
+  }
+
+  .hidden{display:none !important;}
+
+  /* Class tabs */
+  .class-tabs{
+    width:100%;
+    max-width:none;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:16px;
+    flex-shrink:0;
+  }
+  .class-tab{
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:10px 20px;
+    border-radius:999px;
+    cursor:pointer;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.5px;
+    transition:.15s;
+  }
+  .class-tab:hover{background:rgba(255,255,255,0.1); color:var(--white);}
+  .class-tab.active{
+    background:var(--yellow);
+    color:#1a1400;
+    border-color:var(--yellow);
+  }
+
+
+</style>
+</head>
+<body>
+
+  <div class="clock-ribbon" id="clockRibbon">
+    <div class="ribbon-spacer"></div>
+    <div class="clock-center">
+      <div class="date" id="dateLabel">--</div>
+      <div class="time" id="timeLabel">--:--</div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn icon-only" id="tabsToggleBtn" title="Tunjuk/Sembunyi Tab Kelas"></button>
+      <button class="icon-btn edit-toggle" id="editToggleBtn">⚙ Urus Sesi</button>
+    </div>
+  </div>
+
+  <div class="class-tabs" id="allTabs"></div>
+
+  <div class="grid" id="grid">
+    <div class="empty-state" id="emptyState">Belum ada sesi peperiksaan ditambah.<br>Klik "Urus Sesi" untuk tambah kertas peperiksaan.</div>
+  </div>
+
+  <div class="edit-panel hidden" id="editPanel">
+    <h3 id="formHeading">Tambah Sesi Peperiksaan</h3>
+    <div class="form-row">
+      <div class="field">
+        <label>Tempat</label>
+        <select id="inTempat">
+          <option value="">-- Pilih Tempat --</option>
+          <optgroup label="Dewan">
+            <option value="DEWAN BESAR">DEWAN BESAR</option>
+          </optgroup>
+          <optgroup label="Kelas">
+            <option value="EC-G-1">EC-G-1</option>
+            <option value="EC-G-2">EC-G-2</option>
+            <option value="EC-G-3">EC-G-3</option>
+            <option value="EC-G-4">EC-G-4</option>
+            <option value="EC-G-5">EC-G-5</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>Kod Kursus</label>
+        <input type="text" id="inCode" placeholder="cth: MPU 2372">
+      </div>
+      <div class="field">
+        <label>Label Sesi</label>
+        <input type="text" id="inSession" placeholder="cth: ITTAM">
+      </div>
+      <div class="field">
+        <label>Masa Mula</label>
+        <input type="time" id="inStart">
+      </div>
+      <div class="field">
+        <label>Masa Tamat</label>
+        <input type="time" id="inEnd">
+      </div>
+      <button class="add-btn" id="addBtn">+ Tambah</button>
+      <button class="icon-btn hidden" id="cancelEditBtn">Batal</button>
+    </div>
+    <div class="threshold-row">
+      Amaran mula bila baki
+      <input type="number" id="thresholdInput" min="1" max="120" value="15">
+      minit
+      <span style="color:var(--red); margin-left:6px;">(kad akan bertukar merah &amp; berdenyut)</span>
+      <button class="icon-btn" id="resetAllBtn" style="margin-left:auto; color:var(--red); border-color:rgba(255,71,87,0.3);">🗑 Reset Semua Sesi &amp; Amaran</button>
+    </div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, push, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCf9lwVlXXTbijUpjR9bpxyDX94_fqEKnQ",
+  authDomain: "timer-exam.firebaseapp.com",
+  databaseURL: "https://timer-exam-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "timer-exam",
+  storageBucket: "timer-exam.firebasestorage.app",
+  messagingSenderId: "360308589393",
+  appId: "1:360308589393:web:b6fa620e1e3b5e05edc970"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+const sessionsRef = ref(db, 'sessions');
+
+const THRESHOLD_KEY = 'examTimerThreshold_v1';
+const SESSIONS_CACHE_KEY = 'examTimerSessionsCache_v1'; // cache offline sahaja, bukan sumber utama
+
+// Baca param dewan (db) & kelas (ec) dari URL, cth: ?db=DK1&ec=A
+const urlParams = new URLSearchParams(window.location.search);
+const lockedDewan = urlParams.get('db');   // null kalau takde dalam URL
+const lockedKelas = urlParams.get('ec');   // null kalau takde dalam URL
+
+// sessions sekarang objek {pushKey: {dewan,kelas,code,session,start,end}}, bukan array
+// mula-mula guna cache localStorage (offline/render awal), Firebase akan overwrite bila data sampai
+let sessions = JSON.parse(localStorage.getItem(SESSIONS_CACHE_KEY) || '{}');
+let warnThreshold = parseInt(localStorage.getItem(THRESHOLD_KEY) || '15', 10);
+// Tab dewan & kelas kini MULTI-SELECT: boleh klik lebih dari satu tab (cth
+// EC-G-1 dan EC-G-2 sekali) untuk tunjuk gabungan paper tersebut. "Semua"
+// mengosongkan pilihan (tunjuk semua paper). Dewan/kelas yang dikunci via URL
+// (?db=/?ec=) jadi penapis mutlak berasingan — butangnya tak dipaparkan dan
+// tak pernah masuk dalam set pilihan, jadi tak boleh dibuang oleh "Semua".
+let selectedPlaces = new Set(
+  JSON.parse(localStorage.getItem('examTimerSelectedPlaces_v1') || '[]')
+);
+let editingKey = null;
+let tabsHidden = localStorage.getItem('examTimerTabsHidden_v1') === 'true';
+
+function saveSelection(){
+  localStorage.setItem('examTimerSelectedPlaces_v1', JSON.stringify([...selectedPlaces]));
+}
+
+// ---------------------------------------------------------------------
+// JAM IKUT WAKTU INTERNET (bukan jam device)
+// ---------------------------------------------------------------------
+// Idea: kita fetch waktu SEBENAR dari server waktu di internet (bukan
+// jam tempatan device, yang mungkin salah/lambat/laju), kira "offset"
+// (beza) antara waktu server tu dengan jam device pada masa fetch, lepas
+// tu simpan offset tu. Selepas ni, setiap kali kita perlukan "waktu
+// sekarang" (getNow()), kita just ambil jam device + offset tersimpan —
+// jadi paparan tetap tepat ikut internet walaupun jam device device tu
+// sendiri salah, TANPA perlu fetch API tiap saat (offset di-refresh
+// berkala je untuk elak drift jam device dalam tempoh panjang).
+//
+// Malaysia (Asia/Kuala_Lumpur) sentiasa UTC+8 sepanjang tahun (tiada
+// DST/daylight saving), jadi offset tu fixed & selamat guna terus dalam
+// pengiraan di bawah.
+const KL_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
+const KL_TIME_SOURCES = [
+  {
+    // worldtimeapi.org — beri unixtime (epoch ms) terus, paling mudah &
+    // tepat sebab dah timezone-agnostic.
+    url: 'https://worldtimeapi.org/api/timezone/Asia/Kuala_Lumpur',
+    parse: async (res) => {
+      const data = await res.json();
+      if(typeof data.unixtime !== 'number') throw new Error('unixtime tiada');
+      return data.unixtime * 1000;
+    }
+  },
+  {
+    // timeapi.io — fallback kalau worldtimeapi down. Beri komponen waktu
+    // tempatan KL (y/m/d/h/m/s), kita tukar jadi epoch guna offset tetap
+    // UTC+8 di atas.
+    url: 'https://timeapi.io/api/time/current/zone?timeZone=Asia/Kuala_Lumpur',
+    parse: async (res) => {
+      const data = await res.json();
+      if(typeof data.year !== 'number') throw new Error('data timeapi.io tak lengkap');
+      return Date.UTC(data.year, data.month - 1, data.day, data.hour, data.minute, data.seconds || 0, data.milliSeconds || 0) - KL_UTC_OFFSET_MS;
+    }
+  }
+];
+
+let timeOffsetMs = 0;       // beza (ms) antara waktu internet sebenar dengan jam device
+let timeSynced = false;     // dah berjaya sync sekurang-kurangnya sekali?
+
+// "Waktu sekarang" yang betul (dah dibetulkan ikut internet). Guna fungsi
+// ni di MANA-MANA sahaja dalam kod yang perlukan "now" — jangan guna
+// `new Date()` terus, supaya semua pengiraan (jam, countdown, auto-hide)
+// konsisten ikut waktu internet, bukan jam device.
+function getNow(){
+  return new Date(Date.now() + timeOffsetMs);
+}
+
+// Pecahkan sebuah Date (instant yang betul) kepada komponen tarikh/waktu
+// ikut timezone Asia/Kuala_Lumpur secara eksplisit — supaya paparan tetap
+// waktu KL walaupun timezone yang ditetapkan pada device tu lain (cth
+// device tersalah set UTC atau timezone negara lain).
+function klParts(date){
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23'
+  });
+  const out = {};
+  fmt.formatToParts(date).forEach(p => { if(p.type !== 'literal') out[p.type] = p.value; });
+  return out; // {year,month,day,hour,minute,second} - semua string
+}
+
+// Ambil SATU sampel offset drpd satu sumber waktu (satu fetch = satu
+// "percubaan"). Anggaran offset guna kaedah ringkas macam NTP: offset =
+// (waktu-server + separuh round-trip) - waktu-device semasa respons
+// diterima. Latency round-trip turut dipulangkan supaya caller boleh
+// pilih sampel paling tepat (round-trip paling rendah = paling boleh
+// dipercayai, sbb anggapan "separuh round-trip" paling sah bila latency
+// singkat & simetri).
+async function sampleTimeOffset(src){
+  const t0 = Date.now();
+  const res = await fetch(src.url, { cache: 'no-store' });
+  if(!res.ok) throw new Error('respons tak ok: ' + res.status);
+  const serverMs = await src.parse(res);
+  const t1 = Date.now();
+  const rtt = t1 - t0;
+  const offset = (serverMs + rtt / 2) - t1;
+  return { offset, rtt };
+}
+
+// Sync waktu: cuba tiap sumber (ikut susunan keutamaan), dan utk sumber
+// yang berjaya, ambil BEBERAPA sampel pantas berturut-turut lalu guna
+// sampel dengan round-trip PALING RENDAH (paling tepat) sebagai offset
+// akhir. Ni penting supaya semua device converge ke offset yang hampir
+// sama & stabil (bukan offset "sekali cuba" yang boleh jitter sebab
+// kelewatan rangkaian sekejap-sekejap), supaya jam semua device benar-
+// benar sepadan sehingga ke saat.
+const SYNC_SAMPLES = 3;
+
+async function syncInternetTime(){
+  for(const src of KL_TIME_SOURCES){
+    const samples = [];
+    for(let i = 0; i < SYNC_SAMPLES; i++){
+      try{
+        samples.push(await sampleTimeOffset(src));
+      } catch(err){
+        // sumber ni gagal — tak payah teruskan sampel seterusnya, cuba sumber lain
+        samples.length = 0;
+        break;
+      }
+    }
+    if(samples.length === 0) continue;
+    samples.sort((a, b) => a.rtt - b.rtt);
+    timeOffsetMs = samples[0].offset;
+    timeSynced = true;
+    return true;
+  }
+  console.warn('[jam] Semua sumber waktu internet gagal dihubungi — guna jam device buat sementara.');
+  return false;
+}
+
+// Sync sebaik page load, lepas tu refresh berkala (5 minit) supaya offset
+// tak drift walaupun jam device sendiri sedikit tak stabil. Kalau attempt
+// pertama gagal (cth tiada internet time), cuba lagi lebih kerap (30s)
+// sehingga berjaya.
+syncInternetTime();
+setInterval(syncInternetTime, 5 * 60 * 1000); // refresh berkala elak drift
+// Kalau sync pertama gagal (cth belum ada sambungan internet lagi masa
+// page baru load), cuba lagi lebih kerap (tiap 30s) sehingga berjaya.
+(function scheduleRetryIfNeeded(){
+  setTimeout(() => {
+    if(!timeSynced) syncInternetTime().finally(scheduleRetryIfNeeded);
+  }, 30 * 1000);
+})();
+
+const EYE_OPEN_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_SLASH_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.06-5.94"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+function applyTabsVisibility(){
+  const btn = document.getElementById('tabsToggleBtn');
+  allTabs.classList.toggle('hidden', tabsHidden);
+  btn.innerHTML = tabsHidden ? EYE_SLASH_SVG : EYE_OPEN_SVG;
+  btn.title = tabsHidden ? 'Tunjuk Tab Dewan/Kelas' : 'Sembunyi Tab Dewan/Kelas';
+  requestAnimationFrame(layoutGrid);
+}
+
+const grid = document.getElementById('grid');
+const emptyState = document.getElementById('emptyState');
+const editPanel = document.getElementById('editPanel');
+const editToggleBtn = document.getElementById('editToggleBtn');
+const thresholdInput = document.getElementById('thresholdInput');
+const allTabs = document.getElementById('allTabs');
+thresholdInput.value = warnThreshold;
+
+// Fon/touchscreen takde konsep hover, jadi butang (mata/Urus Sesi) tak akan
+// keluar kalau bergantung pada :hover je. Tap kat ribuan jam untuk toggle.
+const clockRibbon = document.getElementById('clockRibbon');
+clockRibbon.addEventListener('click', (e)=>{
+  // kalau tap tepat kat butang, biar butang tu jalan macam biasa (jangan toggle balik)
+  if(e.target.closest('.icon-btn')) return;
+  clockRibbon.classList.toggle('actions-visible');
+});
+// tap di luar ribbon / kad akan tutup balik butang-butang tersembunyi tu
+document.addEventListener('click', (e)=>{
+  if(!clockRibbon.contains(e.target)){
+    clockRibbon.classList.remove('actions-visible');
+  }
+  if(!e.target.closest('.card')){
+    grid.querySelectorAll('.card.actions-visible').forEach(c => c.classList.remove('actions-visible'));
+  }
+});
+
+function cacheSessionsLocally(){
+  localStorage.setItem(SESSIONS_CACHE_KEY, JSON.stringify(sessions));
+}
+
+// Buang dari cache localStorage mana-mana sesi yang SEBENARNYA dah tamat
+// sepenuhnya (lepas tempoh auto-hide 3 minit), SEBELUM paint pertama.
+// Ni elak "flash" paper lama yang dah takde sepatutnya bila page dibuka
+// semula — sbb cache localStorage tu cuma untuk render awal/offline
+// sementara tunggu Firebase respond, jadi kalau data dalam cache tu dah
+// jelas basi (paper dah lama habis), tak payah tunggu Firebase utk buang,
+// terus bersihkan dulu sebelum render pertama.
+function pruneStaleCache(){
+  const now = getNow();
+  let changed = false;
+  Object.keys(sessions).forEach(key=>{
+    const s = sessions[key];
+    if(!s || !s.end){ return; }
+    const end = todayAt(s.end);
+    const autoHideAt = new Date(end.getTime() + 3*60000);
+    if(now >= autoHideAt){
+      delete sessions[key];
+      changed = true;
+    }
+  });
+  if(changed) cacheSessionsLocally();
+}
+
+// Dengar perubahan live dari Firebase — bila mana-mana peranti tambah/edit/padam,
+// SEMUA skrin yang buka (fon/desktop/dewan lain) terus update automatik.
+onValue(sessionsRef, (snapshot)=>{
+  sessions = snapshot.val() || {};
+  cacheSessionsLocally();
+  render();
+}, (err)=>{
+  console.error('Firebase sync error:', err);
+});
+
+// Satu je tab bar: 1 butang "Semua" (tunjuk semua paper — dewan & kelas
+// sekali), diikuti butang setiap dewan, kemudian butang setiap kelas.
+// Kalau dewan/kelas dikunci via URL (?db= / ?ec=), butang untuk penapis tu
+// tak dipaparkan sebab dah automatik terkunci.
+function renderTabs(){
+  const dewans = lockedDewan ? [] : [...new Set(Object.values(sessions).map(s => s.dewan).filter(Boolean))];
+  const classes = lockedKelas ? [] : [...new Set(Object.values(sessions).map(s => s.kelas).filter(Boolean))];
+  const available = new Set([...dewans, ...classes]);
+
+  // Buang dari pilihan mana-mana nama yang dah tak wujud lagi (paper dibuang, dsb).
+  [...selectedPlaces].forEach(p => { if(!available.has(p)) selectedPlaces.delete(p); });
+
+  allTabs.innerHTML = '';
+
+  // Takde apa-apa dewan/kelas tersedia lagi (atau kedua-dua dikunci) -> takde tab
+  if(dewans.length === 0 && classes.length === 0) return;
+
+  const resetAndRender = ()=>{
+    saveSelection();
+    renderTabs();
+    render();
+  };
+
+  // Satu-satunya butang "Semua" — kosongkan pilihan, tunjuk semua paper
+  // (penapis yang dikunci via URL ?db=/?ec= bukan sebahagian selectedPlaces,
+  // jadi ia takkan terjejas oleh "Semua")
+  const allBtn = document.createElement('button');
+  allBtn.className = 'class-tab' + (selectedPlaces.size===0 ? ' active' : '');
+  allBtn.textContent = 'Semua';
+  allBtn.addEventListener('click', ()=>{
+    selectedPlaces.clear();
+    resetAndRender();
+  });
+  allTabs.appendChild(allBtn);
+
+  // Butang setiap dewan — boleh pilih lebih dari satu (multi-select)
+  dewans.forEach(d=>{
+    const btn = document.createElement('button');
+    btn.className = 'class-tab' + (selectedPlaces.has(d) ? ' active' : '');
+    btn.textContent = d;
+    btn.addEventListener('click', ()=>{
+      if(selectedPlaces.has(d)) selectedPlaces.delete(d); else selectedPlaces.add(d);
+      resetAndRender();
+    });
+    allTabs.appendChild(btn);
+  });
+
+  // Butang setiap kelas — boleh pilih lebih dari satu (multi-select)
+  classes.forEach(c=>{
+    const btn = document.createElement('button');
+    btn.className = 'class-tab' + (selectedPlaces.has(c) ? ' active' : '');
+    btn.textContent = c;
+    btn.addEventListener('click', ()=>{
+      if(selectedPlaces.has(c)) selectedPlaces.delete(c); else selectedPlaces.add(c);
+      resetAndRender();
+    });
+    allTabs.appendChild(btn);
+  });
+}
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+
+function todayAt(hhmm){
+  const [h,m] = hhmm.split(':').map(Number);
+  // "Hari ini" ditentukan ikut tarikh semasa di Kuala Lumpur (waktu
+  // internet yg dah dibetulkan), bukan tarikh/jam device.
+  const kl = klParts(getNow());
+  const y = parseInt(kl.year, 10), mo = parseInt(kl.month, 10), d = parseInt(kl.day, 10);
+  return new Date(Date.UTC(y, mo - 1, d, h, m, 0, 0) - KL_UTC_OFFSET_MS);
+}
+
+function fmtRange(start, end){
+  function to12(hhmm){
+    const [h,m] = hhmm.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12; if(h12===0) h12=12;
+    return `${h12}.${pad(m)} ${period}`;
+  }
+  return `(${to12(start)} - ${to12(end)})`;
+}
+
+// Toggle "idle-mode" pada <body> bila takde LANGSUNG kad paper ditunjukkan
+// di grid (sama ada belum ada paper ditetapkan, semua paper ditapis oleh
+// tab, atau semua paper dah tamat & auto-hilang). Dalam mod ni jam auto
+// center & auto scale besar (lihat CSS body.idle-mode) supaya skrin nampak
+// "reset" macam skrin awal.
+function updateIdleMode(){
+  const isIdle = grid.querySelectorAll('.card').length === 0;
+  document.body.classList.toggle('idle-mode', isIdle);
+}
+
+function render(){
+  renderTabs();
+  grid.querySelectorAll('.card').forEach(c=>c.remove());
+
+  const allSessions = Object.entries(sessions).map(([key, s]) => ({...s, _key: key}));
+  const hasAny = allSessions.length > 0;
+
+  const lockedKelasSet = lockedKelas
+    ? new Set(lockedKelas.split(',').map(k => k.trim().toLowerCase()))
+    : null;
+
+  const visibleSessions = allSessions
+    .filter(s => !lockedDewan || (s.dewan || '').toLowerCase() === lockedDewan.toLowerCase())
+    .filter(s => !lockedKelasSet || lockedKelasSet.has((s.kelas || '').toLowerCase()))
+    .filter(s => selectedPlaces.size===0 || selectedPlaces.has(s.dewan) || selectedPlaces.has(s.kelas));
+
+  emptyState.classList.toggle('hidden', visibleSessions.length>0);
+  if(visibleSessions.length===0 && hasAny){
+    const activeFilter = [...selectedPlaces].join(', ');
+    emptyState.textContent = !activeFilter
+      ? 'Tiada sesi untuk paparan ini.'
+      : `Tiada sesi untuk "${activeFilter}".`;
+    emptyState.classList.remove('hidden');
+  } else if(!hasAny){
+    emptyState.textContent = 'Belum ada sesi peperiksaan ditambah. Klik "Urus Sesi" untuk tambah kertas peperiksaan.';
+  }
+
+  visibleSessions.forEach(s=>{
+    const key = s._key;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.key = key;
+    card.innerHTML = `
+      <div class="card-actions">
+        <button class="edit-btn" title="Edit">✎</button>
+        <button class="remove-btn" title="Buang">✕</button>
+      </div>
+      <div class="code">${escapeHtml(s.code)}</div>
+      ${s.session ? `<div class="session">${escapeHtml(s.session)}</div>` : ''}
+      <div class="range">${fmtRange(s.start, s.end)}</div>
+      <div class="status-label">Baki Masa</div>
+      <div class="countdown">--:--</div>
+      <div class="done-note"></div>
+    `;
+    card.querySelector('.edit-btn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      startEdit(key);
+    });
+    card.querySelector('.remove-btn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const now = getNow();
+      const start = todayAt(s.start);
+      const end = todayAt(s.end);
+      const isRunning = now >= start && now < end;
+      const label = [s.code, s.session].filter(Boolean).join(' — ');
+      const msg = isRunning
+        ? `⚠️ AMARAN: "${label}" SEDANG BERJALAN sekarang!\n\nAnda PASTI nak padam paper yang tengah berjalan ni? Tindakan ini tak boleh undo.`
+        : `Padam sesi "${label}"?\n\nTindakan ini tak boleh undo.`;
+      if(!confirm(msg)) return;
+      remove(ref(db, 'sessions/' + key));
+      if(editingKey === key) cancelEdit();
+    });
+    // Fon/touchscreen takde :hover — kena tap kad dulu utk "reveal" butang
+    // edit/buang (elak tap sekali terus accidentally kena butang buang yang
+    // sepatutnya tersembunyi). Tap kad lain / luar kad akan tutup balik.
+    card.addEventListener('click', (e)=>{
+      if(e.target.closest('.card-actions')) return;
+      const wasVisible = card.classList.contains('actions-visible');
+      grid.querySelectorAll('.card.actions-visible').forEach(c => c.classList.remove('actions-visible'));
+      if(!wasVisible) card.classList.add('actions-visible');
+    });
+    grid.appendChild(card);
+  });
+
+  layoutGrid();
+  updateIdleMode();
+}
+
+function layoutGrid(){
+  const n = grid.querySelectorAll('.card').length;
+  if(n === 0){ grid.style.gridTemplateColumns = '1fr'; return; }
+
+  const rect = grid.getBoundingClientRect();
+  const w = rect.width || window.innerWidth;
+  const h = rect.height || (window.innerHeight * 0.6);
+
+  let bestCols = 1, bestScore = -Infinity;
+  for(let cols = 1; cols <= n; cols++){
+    const rows = Math.ceil(n / cols);
+    const cellW = w / cols;
+    const cellH = h / rows;
+    const score = Math.min(cellW, cellH); // maximize the smaller dimension = biggest readable card
+    if(score > bestScore){
+      bestScore = score;
+      bestCols = cols;
+    }
+  }
+  grid.style.gridTemplateColumns = `repeat(${bestCols}, 1fr)`;
+  requestAnimationFrame(fitAllCards);
+}
+
+// Measures each card's real rendered box and sets font sizes in px so the
+// text block always fits, no matter how many lines are visible (code,
+// session, range, status-label, countdown) or how the card's aspect ratio
+// changes with column count / screen size. This replaces the old cqh-based
+// clamp() approach, which could overshoot the card height and cause the
+// text to overlap or get clipped.
+const CARD_FIELD_WEIGHTS = [
+  { sel: '.code',          weight: 0.32, lineHeight: 1.05, maxFontPx: 130 },
+  { sel: '.session',       weight: 0.09, lineHeight: 1.15, maxFontPx: 46  },
+  { sel: '.range',         weight: 0.12, lineHeight: 1.15, maxFontPx: 56  },
+  { sel: '.status-label',  weight: 0.06, lineHeight: 1.15, maxFontPx: 34  },
+  { sel: '.countdown',     weight: 0.41, lineHeight: 1.05, maxFontPx: 150 },
+];
+
+function fitCard(card){
+  const rect = card.getBoundingClientRect();
+  if(rect.height < 10 || rect.width < 10) return;
+
+  const cs = getComputedStyle(card);
+  const padTop = parseFloat(cs.paddingTop) || 0;
+  const padBottom = parseFloat(cs.paddingBottom) || 0;
+  const padLeft = parseFloat(cs.paddingLeft) || 0;
+  const padRight = parseFloat(cs.paddingRight) || 0;
+  const gapPx = parseFloat(cs.rowGap) || 0;
+
+  const availWidth = Math.max(10, rect.width - padLeft - padRight);
+  const availHeight = Math.max(10, rect.height - padTop - padBottom);
+
+  const items = CARD_FIELD_WEIGHTS
+    .map(f => ({ ...f, el: card.querySelector(f.sel) }))
+    .filter(it => it.el && it.el.textContent.trim() !== '' && it.el.offsetParent !== null);
+
+  if(items.length === 0) return;
+
+  const totalGap = gapPx * Math.max(0, items.length - 1);
+  const usableHeight = Math.max(10, availHeight - totalGap);
+  const totalWeight = items.reduce((s, it) => s + it.weight, 0);
+
+  items.forEach(it => {
+    const shareHeight = usableHeight * (it.weight / totalWeight);
+    let fontPx = Math.max(9, shareHeight / it.lineHeight);
+    if(it.maxFontPx) fontPx = Math.min(fontPx, it.maxFontPx);
+
+    // Shrink further if the text would overflow the card's width
+    // (long course codes / session labels on narrow cards).
+    it.el.style.fontSize = fontPx + 'px';
+    let guard = 20;
+    while(it.el.scrollWidth > availWidth && fontPx > 9 && guard-- > 0){
+      fontPx *= 0.94;
+      it.el.style.fontSize = fontPx + 'px';
+    }
+  });
+}
+
+function fitAllCards(){
+  grid.querySelectorAll('.card').forEach(fitCard);
+}
+
+window.addEventListener('resize', ()=> requestAnimationFrame(layoutGrid));
+
+function tick(){
+  const now = getNow(); // waktu sebenar (internet-corrected), bukan jam device
+  const kl = klParts(now); // komponen jam ikut Asia/Kuala_Lumpur secara eksplisit
+  let h24 = parseInt(kl.hour, 10);
+  let h12 = h24 % 12; if(h12 === 0) h12 = 12;
+  document.getElementById('timeLabel').textContent =
+    `${pad(h12)}:${kl.minute}`;
+  document.getElementById('dateLabel').textContent =
+    now.toLocaleDateString('ms-MY', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'Asia/Kuala_Lumpur' });
+
+  const cards = grid.querySelectorAll('.card');
+  const initialCount = cards.length;
+  cards.forEach(card=>{
+    const key = card.dataset.key;
+    const s = sessions[key];
+    if(!s) return;
+    const start = todayAt(s.start);
+    const end = todayAt(s.end);
+    const autoHideAt = new Date(end.getTime() + 3*60000);
+
+    if(now >= autoHideAt){
+      card.remove();
+      return;
+    }
+
+    const countdownEl = card.querySelector('.countdown');
+    const statusEl = card.querySelector('.status-label');
+    const doneNoteEl = card.querySelector('.done-note');
+
+    countdownEl.classList.remove('running-text');
+
+    const wasEmpty = statusEl.textContent.trim() === '' && countdownEl.textContent.trim() === '';
+
+    // Tentukan status semasa dulu (tanpa sentuh classList lagi) supaya kita
+    // boleh banding dengan status tick sebelumnya. Ini penting sebab class
+    // .state-done pasang animasi "coret pen merah" (animation sekali je,
+    // forwards) — kalau kita buang & tambah semula class tu tiap saat macam
+    // dulu, animation akan retrigger tiap saat dan tak nampak macam "potong
+    // sekali", terus jadi flicker/tak natural.
+    let newState = 'normal';
+    if(now < start){
+      const diff = Math.max(0, start - now);
+      statusEl.textContent = 'Bermula Dalam';
+      countdownEl.textContent = fmtDuration(diff);
+      newState = 'upcoming';
+    } else if(now >= end){
+      // Lepas paper tamat & garisan merah dah selesai dicoret, tak payah
+      // tunjuk label "Status" / "MASA TAMAT" lagi — biar card jadi bersih,
+      // cuma kod/nama/masa yang dicoret & beransur kelabu sahaja yang kekal.
+      // (Cuma clear text ni pada tick PERTAMA je masuk 'done' — lepas tu
+      // mesej peringatan dalam .done-note akan diisi via setTimeout di
+      // bawah, jangan clobber balik pada tick-tick seterusnya.)
+      if(card.dataset.state !== 'done'){
+        statusEl.textContent = '';
+        countdownEl.textContent = '';
+      }
+      newState = 'done';
+    } else {
+      const diff = end - now;
+      const minsLeft = diff / 60000;
+      if(minsLeft <= warnThreshold){
+        statusEl.textContent = 'Baki Masa';
+        countdownEl.textContent = fmtDuration(diff);
+        newState = 'red';
+      } else {
+        statusEl.textContent = '';
+        countdownEl.textContent = '';
+        newState = 'normal';
+      }
+    }
+
+    // Cuma sentuh classList bila status betul-betul bertukar berbanding tick
+    // sebelumnya, supaya animasi one-shot (penStrike) main sekali sahaja.
+    if(card.dataset.state !== newState){
+      card.classList.remove('state-amber','state-red','state-done');
+      if(newState === 'red') card.classList.add('state-red');
+      if(newState === 'done'){
+        card.classList.add('state-done');
+        // Bagi mesej peringatan muncul LEPAS animasi coretan pen merah
+        // selesai sepenuhnya (garisan terakhir 'range' start kat 0.7s +
+        // tempoh 0.45s = 1.15s), bukan serta-merta bertindih dgn animasi.
+        setTimeout(() => {
+          // Semak balik card masih 'done' & belum dibuang dari DOM
+          // (contoh: sesi diedit balik ke masa depan sebelum timeout ni jalan).
+          if(card.dataset.state === 'done' && card.isConnected){
+            typewriterReveal(card, doneNoteEl, 'Sila pastikan semua soalan telah dijawab dan setiap kertas jawapan telah diisi dengan maklumat yang lengkap.', 55);
+            requestAnimationFrame(() => fitCard(card));
+          }
+        }, 1300);
+      } else if(doneNoteEl.textContent){
+        // Keluar dari 'done' (cth sesi diedit semula) — bersihkan mesej peringatan.
+        doneNoteEl.textContent = '';
+        doneNoteEl.classList.remove('visible', 'typing');
+      }
+      card.dataset.state = newState;
+    }
+
+    // Bila paper dah MASA TAMAT: perlahan-lahan jadi kelabu & pudar (macam
+    // "disabled") sepanjang 3 minit sebelum kad tu hilang terus (autoHideAt
+    // di atas dah handle pembuangan kad pada penghujung 3 minit tu).
+    if(newState === 'done'){
+      const fadeMs = autoHideAt.getTime() - end.getTime(); // 3 minit
+      const elapsed = now.getTime() - end.getTime();
+      const progress = Math.min(1, Math.max(0, elapsed / fadeMs));
+      card.style.filter = `grayscale(${progress})`;
+      card.style.opacity = String(1 - progress * 0.65);
+    } else if(card.style.filter || card.style.opacity){
+      card.style.filter = '';
+      card.style.opacity = '';
+    }
+
+    const isEmptyNow = statusEl.textContent.trim() === '' && countdownEl.textContent.trim() === '';
+    if(wasEmpty !== isEmptyNow){
+      requestAnimationFrame(() => fitCard(card));
+    }
+  });
+
+  if(initialCount > 0 && grid.querySelectorAll('.card').length === 0){
+    emptyState.textContent = 'Tiada kertas aktif buat masa ini.';
+    emptyState.classList.remove('hidden');
+  }
+  if(grid.querySelectorAll('.card').length !== initialCount){
+    layoutGrid();
+    updateIdleMode();
+  }
+
+  checkAutoClearSessions();
+}
+
+// Auto clear SEMUA sesi dalam Firebase bila SEMUA paper (merentasi semua
+// dewan/kelas — bukan sekadar yang ditapis oleh tab semasa) betul-betul
+// dah tamat masa DAN dah lepas tempoh auto-hide (3 minit), supaya paper
+// yang dah selesai tak tertinggal dalam senarai selama-lamanya. Amaran
+// (warnThreshold) sengaja TAK disentuh — cuma sesi paper je yang dipadam.
+function checkAutoClearSessions(){
+  const keys = Object.keys(sessions);
+  if(keys.length === 0) return;
+  const now = getNow();
+  const allDone = keys.every(k=>{
+    const s = sessions[k];
+    if(!s || !s.end) return true;
+    const end = todayAt(s.end);
+    const autoHideAt = new Date(end.getTime() + 3*60000);
+    return now >= autoHideAt;
+  });
+  if(allDone){
+    // Bersihkan serta-merta secara local (elak sebarang "flash" paper lama
+    // bila dibuka semula sebelum Firebase sempat respond) DAN padam kat
+    // Firebase supaya semua peranti/dewan lain turut clear serentak.
+    sessions = {};
+    cacheSessionsLocally();
+    set(sessionsRef, null);
+  }
+}
+
+// Papar teks huruf demi huruf macam typewriter (dengan caret berkelip
+// sepanjang proses menaip). Guna setInterval biasa (bukan requestAnimationFrame)
+// sbb kelajuan taip yang stabil lebih penting drpd sync dgn frame render.
+// Ada semakan card.isConnected supaya interval berhenti sendiri kalau kad
+// tu dah dibuang dari skrin (cth auto-hide) sebelum sempat habis menaip.
+function typewriterReveal(card, el, text, speedMs){
+  el.textContent = '';
+  el.classList.add('visible', 'typing');
+  let i = 0;
+  const timer = setInterval(() => {
+    if(!card.isConnected){ clearInterval(timer); return; }
+    i++;
+    el.textContent = text.slice(0, i);
+    if(i >= text.length){
+      clearInterval(timer);
+      el.classList.remove('typing');
+    }
+  }, speedMs || 30);
+}
+
+function fmtDuration(ms){
+  let totalSec = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  const sec = totalSec%60;
+  if(h>0) return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  return `${pad(m)}:${pad(sec)}`;
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+const DEWAN_OPTIONS = ['DEWAN BESAR'];
+
+function startEdit(key){
+  const s = sessions[key];
+  editingKey = key;
+  document.getElementById('inTempat').value = s.dewan || s.kelas || '';
+  document.getElementById('inCode').value = s.code || '';
+  document.getElementById('inSession').value = s.session || '';
+  document.getElementById('inStart').value = s.start || '';
+  document.getElementById('inEnd').value = s.end || '';
+  document.getElementById('formHeading').textContent = 'Kemas Kini Sesi';
+  document.getElementById('addBtn').textContent = '✓ Kemas Kini';
+  document.getElementById('cancelEditBtn').classList.remove('hidden');
+  editPanel.classList.remove('hidden');
+  editPanel.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function cancelEdit(){
+  editingKey = null;
+  document.getElementById('inTempat').value='';
+  document.getElementById('inCode').value='';
+  document.getElementById('inSession').value='';
+  document.getElementById('inStart').value='';
+  document.getElementById('inEnd').value='';
+  document.getElementById('formHeading').textContent = 'Tambah Sesi Peperiksaan';
+  document.getElementById('addBtn').textContent = '+ Tambah';
+  document.getElementById('cancelEditBtn').classList.add('hidden');
+}
+
+document.getElementById('cancelEditBtn').addEventListener('click', cancelEdit);
+
+// Auto caps lock — apa saja yang ditaip dalam Kod Kursus & Label Sesi terus
+// ditukar huruf besar (bukan sekadar visual CSS, tapi value sebenar yang
+// disimpan dalam Firebase pun jadi UPPERCASE).
+['inCode','inSession'].forEach(id=>{
+  const el = document.getElementById(id);
+  el.addEventListener('input', ()=>{
+    const pos = el.selectionStart;
+    el.value = el.value.toUpperCase();
+    if(pos !== null) el.setSelectionRange(pos, pos);
+  });
+});
+
+document.getElementById('resetAllBtn').addEventListener('click', ()=>{
+  const hasSessions = Object.keys(sessions).length > 0;
+  const isThresholdDefault = warnThreshold === 15;
+  if(!hasSessions && isThresholdDefault) return;
+  const ok = confirm('Reset semua sesi peperiksaan DAN amaran? Tindakan ini akan padam SEMUA kertas (semua kelas, semua dewan) dan kembalikan amaran ke nilai asal (15 minit).');
+  if(ok){
+    set(sessionsRef, null);
+    cancelEdit();
+    selectedPlaces.clear();
+    saveSelection();
+    warnThreshold = 15;
+    localStorage.setItem(THRESHOLD_KEY, warnThreshold);
+    thresholdInput.value = warnThreshold;
+  }
+});
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const tempat = document.getElementById('inTempat').value.trim();
+  const code = document.getElementById('inCode').value.trim();
+  const session = document.getElementById('inSession').value.trim();
+  const start = document.getElementById('inStart').value;
+  const end = document.getElementById('inEnd').value;
+  if(!tempat || !code || !start || !end){
+    alert('Sila isi Tempat, Kod Kursus, Masa Mula dan Masa Tamat.');
+    return;
+  }
+  const isDewan = DEWAN_OPTIONS.includes(tempat);
+  const data = {
+    dewan: isDewan ? tempat : '',
+    kelas: isDewan ? '' : tempat,
+    code, session, start, end
+  };
+  if(editingKey !== null){
+    update(ref(db, 'sessions/' + editingKey), data);
+  } else {
+    push(sessionsRef, data);
+  }
+  cancelEdit();
+});
+
+thresholdInput.addEventListener('change', ()=>{
+  warnThreshold = parseInt(thresholdInput.value,10) || 15;
+  localStorage.setItem(THRESHOLD_KEY, warnThreshold);
+});
+
+editToggleBtn.addEventListener('click', ()=>{
+  editPanel.classList.toggle('hidden');
+});
+
+// (Seed data contoh dibuang — data sekarang dikongsi terus melalui Firebase
+// merentasi semua peranti/dewan, jadi auto-seed tak sesuai lagi.)
+
+document.getElementById('tabsToggleBtn').addEventListener('click', ()=>{
+  tabsHidden = !tabsHidden;
+  localStorage.setItem('examTimerTabsHidden_v1', tabsHidden);
+  applyTabsVisibility();
+});
+
+pruneStaleCache();
+render();
+applyTabsVisibility();
+updateIdleMode();
+
+// Jadualkan tick() supaya sentiasa jatuh TEPAT pada sempadan saat waktu
+// sebenar (getNow()), bukan sekadar setInterval(1000) yang mula dari
+// bila-bila masa page tu load — supaya semua device "detik" pada saat
+// yang sama serentak. Kira semula delay ke saat seterusnya SETIAP kali
+// (self-correcting), supaya ia auto-adjust bila offset waktu internet
+// diperbaharui (syncInternetTime) & elak drift jangka panjang drpd
+// setTimeout/setInterval yang tak 100% tepat.
+function scheduleTick(){
+  const msToNextSecond = 1000 - (getNow().getMilliseconds());
+  setTimeout(() => {
+    tick();
+    scheduleTick();
+  }, Math.max(50, msToNextSecond));
+}
+
+tick();
+scheduleTick();
+</script>
+</body>
+</html>
